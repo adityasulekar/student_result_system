@@ -190,6 +190,38 @@ def delete_marks(result_id):
     conn.close()
 
     return redirect(url_for('manage_marks'))
+@app.route('/create_student_login', methods=['GET', 'POST'])
+def create_student_login():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    message = ""
+
+    # Fetch students without login yet (optional filter)
+    cursor.execute("""
+        SELECT id, name, roll_no FROM students
+        WHERE id NOT IN (SELECT student_id FROM users WHERE role = 'student' AND student_id IS NOT NULL)
+    """)
+    students = cursor.fetchall()
+
+    if request.method == 'POST':
+        student_id = request.form['student_id']
+        username = request.form['username']
+        password = request.form['password']
+
+        try:
+            cursor.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, 'student', %s)",
+                           (username, password, student_id))
+            conn.commit()
+            message = "Student login created successfully!"
+        except Exception as e:
+            conn.rollback()
+            message = "Error: " + str(e)
+
+    conn.close()
+    return render_template("create_student_login.html", students=students, message=message)
 
 
 if __name__=='__main__':
