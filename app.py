@@ -95,6 +95,46 @@ def add_marks():
 
     conn.close()
     return render_template("add_marks.html", students=students, message=message)
+@app.route('/view_result', methods=['GET', 'POST'])
+def view_result():
+    if 'role' not in session or session['role'] != 'student':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    result_data = []
+
+    if request.method == 'POST':
+        roll_no = request.form['roll_no']
+        cursor.execute("SELECT id FROM students WHERE roll_no=%s", (roll_no,))
+        student = cursor.fetchone()
+
+        if student:
+            student_id = student[0]
+            cursor.execute("SELECT subject, marks FROM results WHERE student_id=%s", (student_id,))
+            result_data = cursor.fetchall()
+
+    conn.close()
+    return render_template("view_results.html", results=result_data)
+@app.route('/all_results')
+def all_results():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT s.name, s.roll_no, s.class, r.subject, r.marks
+        FROM students s
+        LEFT JOIN results r ON s.id = r.student_id
+        ORDER BY s.roll_no, r.subject
+    """
+    cursor.execute(query)
+    all_data = cursor.fetchall()
+    conn.close()
+
+    return render_template("all_results.html", data=all_data)
 
 
 if __name__=='__main__':
