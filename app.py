@@ -64,6 +64,37 @@ def add_student():
         conn.close()
 
     return render_template("add_student.html", message=message)
+@app.route('/add_marks', methods=['GET', 'POST'])
+def add_marks():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Get all students for the dropdown
+    cursor.execute("SELECT id, name, roll_no FROM students")
+    students = cursor.fetchall()
+    message = ""
+
+    if request.method == 'POST':
+        student_id = request.form['student_id']
+        subject = request.form['subject']
+        marks = request.form['marks']
+
+        try:
+            cursor.execute(
+                "INSERT INTO results (student_id, subject, marks) VALUES (%s, %s, %s)",
+                (student_id, subject, marks)
+            )
+            conn.commit()
+            message = "Marks added successfully!"
+        except Exception as e:
+            conn.rollback()
+            message = "Error: " + str(e)
+
+    conn.close()
+    return render_template("add_marks.html", students=students, message=message)
 
 
 if __name__=='__main__':
