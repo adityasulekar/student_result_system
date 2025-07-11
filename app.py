@@ -95,27 +95,34 @@ def add_marks():
 
     conn.close()
     return render_template("add_marks.html", students=students, message=message)
-@app.route('/view_result', methods=['GET', 'POST'])
+@app.route('/view_result')
 def view_result():
     if 'role' not in session or session['role'] != 'student':
         return redirect(url_for('home'))
 
     conn = get_connection()
     cursor = conn.cursor()
-    result_data = []
 
-    if request.method == 'POST':
-        roll_no = request.form['roll_no']
-        cursor.execute("SELECT id FROM students WHERE roll_no=%s", (roll_no,))
-        student = cursor.fetchone()
+    # Get logged-in user's username
+    username = session['username']
 
-        if student:
-            student_id = student[0]
-            cursor.execute("SELECT subject, marks FROM results WHERE student_id=%s", (student_id,))
-            result_data = cursor.fetchall()
+    # Get student_id from users table
+    cursor.execute("SELECT student_id FROM users WHERE username=%s", (username,))
+    user_data = cursor.fetchone()
+
+    if not user_data or user_data[0] is None:
+        conn.close()
+        return "Your account is not linked to a student record."
+
+    student_id = user_data[0]
+
+    # Fetch marks from results
+    cursor.execute("SELECT subject, marks FROM results WHERE student_id=%s", (student_id,))
+    result_data = cursor.fetchall()
 
     conn.close()
     return render_template("view_results.html", results=result_data)
+
 @app.route('/all_results')
 def all_results():
     if 'role' not in session or session['role'] != 'admin':
