@@ -1,0 +1,7 @@
+_pycache_/
+*.pyc
+*.db
+.env
+.vscode/
+.idea/
+*.zip
