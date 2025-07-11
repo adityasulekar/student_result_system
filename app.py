@@ -135,6 +135,61 @@ def all_results():
     conn.close()
 
     return render_template("all_results.html", data=all_data)
+@app.route('/manage_marks')
+def manage_marks():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT r.id, s.name, s.roll_no, r.subject, r.marks
+        FROM results r
+        JOIN students s ON r.student_id = s.id
+        ORDER BY s.roll_no
+    """
+    cursor.execute(query)
+    marks_data = cursor.fetchall()
+    conn.close()
+
+    return render_template("manage_marks.html", data=marks_data)
+@app.route('/edit_marks/<int:result_id>', methods=['GET', 'POST'])
+def edit_marks(result_id):
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        new_subject = request.form['subject']
+        new_marks = request.form['marks']
+
+        cursor.execute("UPDATE results SET subject=%s, marks=%s WHERE id=%s",
+                       (new_subject, new_marks, result_id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('manage_marks'))
+
+    # GET: show current data
+    cursor.execute("SELECT subject, marks FROM results WHERE id=%s", (result_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    return render_template("edit_marks.html", result=result, result_id=result_id)
+@app.route('/delete_marks/<int:result_id>')
+def delete_marks(result_id):
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('home'))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM results WHERE id=%s", (result_id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('manage_marks'))
 
 
 if __name__=='__main__':
